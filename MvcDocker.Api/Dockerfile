@@ -1,19 +1,15 @@
-# syntax=docker/dockerfile:1
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build-env
-WORKDIR /source
+WORKDIR /app
 
-# Copy csproj and restore as distinct layers
-COPY ["MvcDocker.Api/MvcDocker.Api.csproj", "MvcDocker.Api/"]
-COPY . .
+# Copy everything
+COPY . ./
+# Restore as distinct layers
 RUN dotnet restore
+# Build and publish a release
+RUN dotnet publish -c Release -o out
 
-# Copy everything else and build
-COPY MvcDocker.Api/. ./MvcDocker.Api/
-WORKDIR /source/MvcDocker.Api/ 
-RUN dotnet publish "./MvcDocker.Api.csproj" -c release -o /app 
-
-# final stage/image'
+# Build runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:6.0
 WORKDIR /app
-COPY --from=build /app ./
+COPY --from=build-env /app/out .
 ENTRYPOINT ["dotnet", "MvcDocker.Api.dll"]
